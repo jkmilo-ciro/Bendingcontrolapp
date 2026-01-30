@@ -19,7 +19,7 @@ st.markdown("""
 
 st.markdown("<h2 style='color:#00FF7F; text-align:center;'>PIPING CONTROL V1.0</h2>", unsafe_allow_html=True)
 
-# --- ENTRADAS (ID Eliminado) ---
+# --- ENTRADAS (ID ELIMINADO) ---
 diam_p_raw = st.text_input("Ø TUBO (PULG)", value="0") 
 
 c1, c2 = st.columns(2)
@@ -30,7 +30,6 @@ with c2:
     ang_v_raw = st.text_input("ANG. VERT (B°)", value="0")
     sent_v = st.selectbox("SENTIDO V", ["SUPERIOR (CS)", "INFERIOR (CI)"])
 
-# Función para convertir grados decimales a GMS
 def decimal_to_gms(decimal_deg):
     d = int(decimal_deg)
     m = int((decimal_deg - d) * 60)
@@ -40,33 +39,34 @@ def decimal_to_gms(decimal_deg):
 if st.button("CALCULAR Y POSICIONAR"):
     try:
         diam_p = float(diam_p_raw.replace(',', '.'))
-        ang_h = float(ang_h_raw.replace(',', '.'))
-        ang_v = float(ang_v_raw.replace(',', '.'))
+        A = float(ang_h_raw.replace(',', '.'))
+        B = float(ang_v_raw.replace(',', '.'))
 
         if diam_p > 0:
-            # Sumatoria de los ángulos solicitada
-            suma_angulos = ang_h + ang_v
-            gms_suma = decimal_to_gms(suma_angulos)
-
-            # Cálculo de giro original para el gráfico y distancia
-            rad_a, rad_b = math.radians(ang_h), math.radians(ang_v)
+            # NUEVA FÓRMULA: Cos-1(Cos A * Cos B)
+            rad_A, rad_B = math.radians(A), math.radians(B)
+            # Cálculo del ángulo resultante espacial (Giro en grados)
+            res_rad = math.acos(math.cos(rad_A) * math.cos(rad_B))
+            giro_deg = math.degrees(res_rad)
+            
+            # Conversión a GMS y mm
+            gms_resultado = decimal_to_gms(giro_deg)
             circ = math.pi * diam_p * 25.4
-            giro_deg = math.degrees(math.atan(math.sin(rad_a) / math.tan(rad_b))) if math.tan(rad_b) != 0 else 0
-            giro_mm = abs(giro_deg * (circ / 360))
+            giro_mm = giro_deg * (circ / 360)
 
-            # Resultados
+            # Resultados en pantalla
             st.markdown(f"""
             <div class='res-box'>
                 <p style='color:#00FF7F; margin:0;'>DISTANCIA DE GIRO:</p>
                 <h2 style='color:#00FF7F; margin:0;'>{giro_mm:.2f} mm</h2>
                 <hr style='border-color:#333;'>
-                <p style='margin:0;'>SUMATORIA DE ÁNGULOS (A° + B°):</p>
-                <h4 style='margin:0;'>Decimal: {suma_angulos:.4f}°</h4>
-                <h4 style='margin:0; color:#00FF7F;'>GMS: {gms_suma}</h4>
+                <p style='margin:0;'>ÁNGULO RESULTANTE Espacial:</p>
+                <h4 style='margin:0;'>Decimal: {giro_deg:.4f}°</h4>
+                <h4 style='margin:0; color:#00FF7F;'>GMS: {gms_resultado}</h4>
             </div>
             """, unsafe_allow_html=True)
 
-            # Gráfico
+            # Gráfico de Trazado
             fig, ax = plt.subplots(figsize=(5, 5))
             fig.patch.set_facecolor('#0E1117')
             ax.set_facecolor('#0E1117')
@@ -75,6 +75,7 @@ if st.button("CALCULAR Y POSICIONAR"):
             ax.axhline(0, color='#333', lw=1, ls='--')
             ax.axvline(0, color='#333', lw=1, ls='--')
 
+            # Posicionamiento de flecha según tu manual
             start_angle = 90 if "CI" in sent_v else 270
             sentido_f = (1 if "CHD" in sent_h else -1) if "CI" in sent_v else (-1 if "CHD" in sent_h else 1)
             ext = 55 * sentido_f
@@ -92,9 +93,5 @@ if st.button("CALCULAR Y POSICIONAR"):
         else:
             st.warning("El diámetro debe ser mayor a 0.")
     except ValueError:
-        st.error("Introduce solo números válidos.")
-
-st.markdown("---")
-url_app = "https://bendingcontrolapp.streamlit.app"
-st.markdown(f"""<a href="https://wa.me/?text=App%20Piping%20Control:%20{url_app}" target="_blank"><button style="width:100%; background-color:#25D366; color:white; font-weight:bold; border:none; border-radius:8px; height:45px;">📤 COMPARTIR APP POR WHATSAPP</button></a>""", unsafe_allow_html=True)
+        st.error("Por favor, introduce solo números.")
             
