@@ -3,7 +3,7 @@ import math
 import matplotlib.pyplot as plt
 import numpy as np
 
-# Configuración y Estilo
+# Estilo y Configuración
 st.set_page_config(page_title="Piping Control v1.0", layout="centered")
 st.markdown("""
     <style>
@@ -19,7 +19,7 @@ st.markdown("""
 
 st.markdown("<h2 style='color:#00FF7F; text-align:center;'>PIPING CONTROL V1.0</h2>", unsafe_allow_html=True)
 
-# --- ENTRADAS (ID ELIMINADO) ---
+# --- ENTRADAS ---
 diam_p_raw = st.text_input("Ø TUBO (PULG)", value="0") 
 
 c1, c2 = st.columns(2)
@@ -43,30 +43,32 @@ if st.button("CALCULAR Y POSICIONAR"):
         B = float(ang_v_raw.replace(',', '.'))
 
         if diam_p > 0:
-            # NUEVA FÓRMULA: Cos-1(Cos A * Cos B)
             rad_A, rad_B = math.radians(A), math.radians(B)
-            # Cálculo del ángulo resultante espacial (Giro en grados)
-            res_rad = math.acos(math.cos(rad_A) * math.cos(rad_B))
-            giro_deg = math.degrees(res_rad)
-            
-            # Conversión a GMS y mm
-            gms_resultado = decimal_to_gms(giro_deg)
             circ = math.pi * diam_p * 25.4
-            giro_mm = giro_deg * (circ / 360)
+            
+            # 1. ÁNGULO RESULTANTE (Fórmula Cos-1)
+            res_rad = math.acos(math.cos(rad_A) * math.cos(rad_B))
+            angulo_total_deg = math.degrees(res_rad)
+            gms_resultado = decimal_to_gms(angulo_total_deg)
 
-            # Resultados en pantalla
+            # 2. GIRO PARA TRAZADO (Lógica original de giro físico)
+            # Usamos la tangente para determinar el ángulo de rotación sobre la circunferencia
+            giro_fisico_deg = math.degrees(math.atan(math.sin(rad_A) / math.tan(rad_B))) if math.tan(rad_B) != 0 else 0
+            giro_mm = abs(giro_fisico_deg * (circ / 360))
+
+            # Resultados
             st.markdown(f"""
             <div class='res-box'>
-                <p style='color:#00FF7F; margin:0;'>DISTANCIA DE GIRO:</p>
+                <p style='color:#00FF7F; margin:0;'>DISTANCIA DE GIRO (TRAZADO):</p>
                 <h2 style='color:#00FF7F; margin:0;'>{giro_mm:.2f} mm</h2>
                 <hr style='border-color:#333;'>
-                <p style='margin:0;'>ÁNGULO RESULTANTE Espacial:</p>
-                <h4 style='margin:0;'>Decimal: {giro_deg:.4f}°</h4>
+                <p style='margin:0;'>ÁNGULO RESULTANTE (ESPACIAL):</p>
+                <h4 style='margin:0;'>Decimal: {angulo_total_deg:.4f}°</h4>
                 <h4 style='margin:0; color:#00FF7F;'>GMS: {gms_resultado}</h4>
             </div>
             """, unsafe_allow_html=True)
 
-            # Gráfico de Trazado
+            # Gráfico
             fig, ax = plt.subplots(figsize=(5, 5))
             fig.patch.set_facecolor('#0E1117')
             ax.set_facecolor('#0E1117')
@@ -75,14 +77,14 @@ if st.button("CALCULAR Y POSICIONAR"):
             ax.axhline(0, color='#333', lw=1, ls='--')
             ax.axvline(0, color='#333', lw=1, ls='--')
 
-            # Posicionamiento de flecha según tu manual
+            # Lógica de flecha (Posicionamiento físico)
             start_angle = 90 if "CI" in sent_v else 270
-            sentido_f = (1 if "CHD" in sent_h else -1) if "CI" in sent_v else (-1 if "CHD" in sent_h else 1)
-            ext = 55 * sentido_f
+            sent_f = (1 if "CHD" in sent_h else -1) if "CI" in sent_v else (-1 if "CHD" in sent_h else 1)
+            ext = 55 * sent_f
             arc_t = np.deg2rad(np.linspace(start_angle, start_angle + ext, 50))
             ax.plot(np.cos(arc_t)*1.15, np.sin(arc_t)*1.15, color='#00FF7F', lw=4)
             end_rad = np.deg2rad(start_angle + ext)
-            ax.arrow(np.cos(end_rad)*1.15, np.sin(end_rad)*1.15, -0.03*sentido_f*np.sin(end_rad), 0.03*sentido_f*np.cos(end_rad), shape='full', head_width=0.09, color='#00FF7F')
+            ax.arrow(np.cos(end_rad)*1.15, np.sin(end_rad)*1.15, -0.03*sent_f*np.sin(end_rad), 0.03*sent_f*np.cos(end_rad), shape='full', head_width=0.09, color='#00FF7F')
             ax.set_xlim(-1.6, 1.6); ax.set_ylim(-1.6, 1.6); ax.axis('off')
             
             st.pyplot(fig)
@@ -92,6 +94,10 @@ if st.button("CALCULAR Y POSICIONAR"):
             st.info(f"📍 MARCAR: Desde el eje {ref}, medir {giro_mm:.2f} mm hacia la {lado}.")
         else:
             st.warning("El diámetro debe ser mayor a 0.")
-    except ValueError:
-        st.error("Por favor, introduce solo números.")
+    except:
+        st.error("Introduce solo números válidos.")
+
+st.markdown("---")
+url_app = "https://bendingcontrolapp.streamlit.app"
+st.markdown(f"""<a href="https://wa.me/?text=App%20Piping%20Control:%20{url_app}" target="_blank"><button style="width:100%; background-color:#25D366; color:white; font-weight:bold; border:none; border-radius:8px; height:45px;">📤 COMPARTIR APP POR WHATSAPP</button></a>""", unsafe_allow_html=True)
             
