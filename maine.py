@@ -1,60 +1,59 @@
 import streamlit as st
 import math
 
-# 1. CONFIGURACIÓN VISUAL (ESTILO PIPING CONTROL)
-st.set_page_config(page_title="Piping Control v1.0", layout="centered")
+# Configuración básica
+st.set_page_config(page_title="Piping Control v1.0")
 
-# Aplicamos CSS para imitar la interfaz de la foto (Modo Oscuro y Verde Neón)
+# Estilo de colores (Verde y Negro)
 st.markdown("""
     <style>
-    .stApp {
-        background-color: #0E1117;
-        color: #FFFFFF;
-    }
-    /* Estilo para los botones */
+    .stApp { background-color: #121212; color: #FFFFFF; }
     div.stButton > button {
-        background-color: #00FF7F;
-        color: #000000;
-        font-weight: bold;
-        border-radius: 8px;
-        border: none;
-        height: 3em;
-        width: 100%;
-    }
-    div.stButton > button:hover {
-        background-color: #00CC66;
-        color: white;
-    }
-    /* Estilo para el título */
-    .main-title {
-        color: #00FF7F;
-        text-align: center;
-        font-size: 35px;
-        font-weight: bold;
-        margin-bottom: 0px;
-    }
-    .sub-title {
-        color: #888888;
-        text-align: center;
-        font-size: 14px;
-        margin-bottom: 30px;
-    }
-    /* Bordes verdes para los inputs */
-    .stTextInput>div>div>input, .stNumberInput>div>div>input {
-        border-color: #00FF7F;
+        background-color: #00FF7F; color: black; font-weight: bold;
+        width: 100%; border-radius: 10px; height: 50px;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# 2. FUNCIONES DE CÁLCULO
-def decimal_a_gms(decimal_grados):
-    abs_grados = abs(decimal_grados)
-    grados = int(abs_grados)
-    minutos_float = (abs_grados - grados) * 60
-    minutos = int(minutos_float)
-    segundos = (minutos_float - minutos) * 60
-    return grados, minutos, segundos
+st.title("PIPING CONTROL V1.0")
+st.write("Maestría en Trazado y Cuadrantes")
 
-# 3. INTERFAZ DE USUARIO (UI)
-st.markdown('<p class="main-title">PIPING CONTROL <span style="font-size:15
-            
+# Entradas de datos
+id_linea = st.text_input("ID DE JUNTA / LÍNEA")
+diametro = st.number_input("Ø TUBO (PULG)", min_value=0.0)
+
+col1, col2 = st.columns(2)
+with col1:
+    ang_a = st.number_input("ANG. HORIZ (A°)")
+    sent_h = st.selectbox("SENTIDO H", ["DERECHA (CHD)", "IZQUIERDA (CHI)"])
+with col2:
+    ang_b = st.number_input("ANG. VERT (B°)")
+    sent_v = st.selectbox("SENTIDO V", ["SUPERIOR (CS)", "INFERIOR (CI)"])
+
+if st.button("CALCULAR Y POSICIONAR"):
+    if diametro > 0:
+        rad_a = math.radians(ang_a)
+        rad_b = math.radians(ang_b)
+        
+        # Ángulo Combinado
+        cos_c = max(-1, min(1, math.cos(rad_a) * math.cos(rad_b)))
+        ang_c = math.degrees(math.acos(cos_c))
+        
+        # Giro en mm
+        constante = (math.pi * diametro * 25.4) / 360
+        giro_mm = 0.0
+        if math.tan(rad_b) != 0:
+            giro_deg = math.degrees(math.atan(math.sin(rad_a) / math.tan(rad_b)))
+            giro_mm = abs(giro_deg * constante)
+
+        # Resultados
+        st.success(f"MEDIDA DE GIRO: {giro_mm:.2f} mm")
+        st.write(f"Ángulo Combinado: {ang_c:.2f}°")
+        
+        # Lógica basada en tu dibujo manual
+        ref = "SUPERIOR" if "INFERIOR" in sent_v else "INFERIOR"
+        lado = "IZQUIERDA" if "DERECHA" in sent_h else "DERECHA"
+        st.info(f"📍 MARCAR: Desde el eje **{ref}**, girar hacia la **{lado}**.")
+    else:
+        st.error("Introduce el diámetro del tubo.")
+        
