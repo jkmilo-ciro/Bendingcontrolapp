@@ -13,18 +13,17 @@ st.markdown("""
         width: 100%; border-radius: 8px; height: 50px; border: none;
     }
     .res-box { background-color: #1E2631; padding: 15px; border-radius: 10px; border-left: 5px solid #00FF7F; margin-bottom: 20px; }
-    /* Estilo para que los inputs se vean limpios */
     .stTextInput input { background-color: #1E2631; color: white; border-radius: 5px; }
     </style>
     """, unsafe_allow_html=True)
 
 st.markdown("<h2 style='color:#00FF7F; text-align:center;'>PIPING CONTROL V1.0</h2>", unsafe_allow_html=True)
 
-# --- ENTRADAS (Solo escritura, sin botones + / -) ---
-id_linea = st.text_input("ID DE JUNTA / LÍNEA", placeholder="Ej: 001")
+# --- ENTRADAS (Ahora inician en Cero o Vacío) ---
+id_linea = st.text_input("ID DE JUNTA / LÍNEA", value="") # Campo vacío
 
-# Usamos text_input para eliminar los botones de incremento
-diam_p_raw = st.text_input("Ø TUBO (PULG)", value="56.0")
+# Diámetro inicia en 0.0
+diam_p_raw = st.text_input("Ø TUBO (PULG)", value="0.0") 
 
 c1, c2 = st.columns(2)
 with c1:
@@ -36,7 +35,6 @@ with c2:
 
 if st.button("CALCULAR Y POSICIONAR"):
     try:
-        # Convertir los textos a números para el cálculo
         diam_p = float(diam_p_raw)
         ang_h = float(ang_h_raw)
         ang_v = float(ang_v_raw)
@@ -47,7 +45,7 @@ if st.button("CALCULAR Y POSICIONAR"):
             giro_deg = math.degrees(math.atan(math.sin(rad_a) / math.tan(rad_b))) if math.tan(rad_b) != 0 else 0
             giro_mm = abs(giro_deg * (circ / 360))
 
-            # Resultados Visuales
+            # Gráfico
             fig, ax = plt.subplots(figsize=(5, 5))
             fig.patch.set_facecolor('#0E1117')
             ax.set_facecolor('#0E1117')
@@ -56,12 +54,13 @@ if st.button("CALCULAR Y POSICIONAR"):
             ax.axhline(0, color='#333', lw=1, ls='--')
             ax.axvline(0, color='#333', lw=1, ls='--')
 
-            # Lógica de flecha basada en tu libreta
+            # Lógica de flecha (Fiel a la libreta)
             start_angle = 90 if "CI" in sent_v else 270
             sentido_f = (1 if "CHD" in sent_h else -1) if "CI" in sent_v else (-1 if "CHD" in sent_h else 1)
             ext = 55 * sentido_f
             arc_t = np.deg2rad(np.linspace(start_angle, start_angle + ext, 50))
             ax.plot(np.cos(arc_t)*1.15, np.sin(arc_t)*1.15, color='#00FF7F', lw=4)
+            
             end_rad = np.deg2rad(start_angle + ext)
             ax.arrow(np.cos(end_rad)*1.15, np.sin(end_rad)*1.15, -0.03*sentido_f*np.sin(end_rad), 0.03*sentido_f*np.cos(end_rad), shape='full', head_width=0.09, color='#00FF7F')
             ax.set_xlim(-1.6, 1.6); ax.set_ylim(-1.6, 1.6); ax.axis('off')
@@ -72,10 +71,12 @@ if st.button("CALCULAR Y POSICIONAR"):
             ref = "SUPERIOR" if "CI" in sent_v else "INFERIOR"
             lado = "IZQUIERDA" if "CHD" in sent_h else "DERECHA"
             st.info(f"📍 MARCAR: Desde el eje {ref}, medir {giro_mm:.2f} mm hacia la {lado}.")
+        else:
+            st.warning("El diámetro debe ser mayor a 0 para calcular.")
+            
     except ValueError:
-        st.error("Por favor, introduce solo números en los campos de Diámetro y Ángulos.")
+        st.error("Por favor, introduce solo números válidos.")
 
 st.markdown("---")
 url_app = "https://bendingcontrolapp.streamlit.app"
 st.markdown(f"""<a href="https://wa.me/?text=App%20Piping%20Control:{url_app}" target="_blank"><button style="width:100%; background-color:#25D366; color:white; font-weight:bold; border:none; border-radius:8px; height:45px;">📤 COMPARTIR APP POR WHATSAPP</button></a>""", unsafe_allow_html=True)
-            
