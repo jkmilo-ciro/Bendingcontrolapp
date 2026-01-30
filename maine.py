@@ -19,8 +19,7 @@ st.markdown("""
 
 st.markdown("<h2 style='color:#00FF7F; text-align:center;'>PIPING CONTROL V1.0</h2>", unsafe_allow_html=True)
 
-# --- ENTRADAS LIMPIAS ---
-id_linea = st.text_input("ID DE JUNTA / LÍNEA", value="") 
+# --- ENTRADAS (ID Eliminado) ---
 diam_p_raw = st.text_input("Ø TUBO (PULG)", value="0") 
 
 c1, c2 = st.columns(2)
@@ -45,13 +44,15 @@ if st.button("CALCULAR Y POSICIONAR"):
         ang_v = float(ang_v_raw.replace(',', '.'))
 
         if diam_p > 0:
+            # Sumatoria de los ángulos solicitada
+            suma_angulos = ang_h + ang_v
+            gms_suma = decimal_to_gms(suma_angulos)
+
+            # Cálculo de giro original para el gráfico y distancia
             rad_a, rad_b = math.radians(ang_h), math.radians(ang_v)
             circ = math.pi * diam_p * 25.4
-            
-            # Cálculo de giro en grados decimales
             giro_deg = math.degrees(math.atan(math.sin(rad_a) / math.tan(rad_b))) if math.tan(rad_b) != 0 else 0
             giro_mm = abs(giro_deg * (circ / 360))
-            gms_text = decimal_to_gms(abs(giro_deg))
 
             # Resultados
             st.markdown(f"""
@@ -59,9 +60,9 @@ if st.button("CALCULAR Y POSICIONAR"):
                 <p style='color:#00FF7F; margin:0;'>DISTANCIA DE GIRO:</p>
                 <h2 style='color:#00FF7F; margin:0;'>{giro_mm:.2f} mm</h2>
                 <hr style='border-color:#333;'>
-                <p style='margin:0;'>ÁNGULO RESULTANTE:</p>
-                <h4 style='margin:0;'>{abs(giro_deg):.4f}°</h4>
-                <h4 style='margin:0; color:#00FF7F;'>{gms_text}</h4>
+                <p style='margin:0;'>SUMATORIA DE ÁNGULOS (A° + B°):</p>
+                <h4 style='margin:0;'>Decimal: {suma_angulos:.4f}°</h4>
+                <h4 style='margin:0; color:#00FF7F;'>GMS: {gms_suma}</h4>
             </div>
             """, unsafe_allow_html=True)
 
@@ -96,3 +97,4 @@ if st.button("CALCULAR Y POSICIONAR"):
 st.markdown("---")
 url_app = "https://bendingcontrolapp.streamlit.app"
 st.markdown(f"""<a href="https://wa.me/?text=App%20Piping%20Control:%20{url_app}" target="_blank"><button style="width:100%; background-color:#25D366; color:white; font-weight:bold; border:none; border-radius:8px; height:45px;">📤 COMPARTIR APP POR WHATSAPP</button></a>""", unsafe_allow_html=True)
+            
