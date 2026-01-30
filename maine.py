@@ -13,13 +13,12 @@ st.markdown("""
         background-color: #00FF7F; color: black; font-weight: bold;
         width: 100%; border-radius: 8px; height: 50px; border: none;
     }
-    .res-box { background-color: #1E2631; padding: 15px; border-radius: 10px; border-left: 5px solid #00FF7F; margin-bottom: 20px; }
     </style>
     """, unsafe_allow_html=True)
 
 st.markdown("<h2 style='color:#00FF7F; text-align:center;'>PIPING CONTROL V1.0</h2>", unsafe_allow_html=True)
 
-# Entradas de datos
+# Entradas
 id_linea = st.text_input("ID DE JUNTA / LÍNEA")
 diam_p = st.number_input("Ø TUBO (PULG)", min_value=0.0, step=0.5)
 
@@ -34,48 +33,54 @@ with c2:
 if st.button("CALCULAR Y POSICIONAR"):
     if diam_p > 0:
         rad_a, rad_b = math.radians(ang_h), math.radians(ang_v)
-        cos_c = max(-1, min(1, math.cos(rad_a) * math.cos(rad_b)))
-        ang_c = math.degrees(math.acos(cos_c))
         
+        # Cálculo de giro
         circ = math.pi * diam_p * 25.4
+        # Evitar división por cero si ang_v es 0
         giro_deg = math.degrees(math.atan(math.sin(rad_a) / math.tan(rad_b))) if math.tan(rad_b) != 0 else 0
         giro_mm = abs(giro_deg * (circ / 360))
 
-        st.markdown(f"""<div class='res-box'>
-            <h2 style='color:#00FF7F; margin:0;'>GIRO: {giro_mm:.2f} mm</h2>
-            <p style='color:#888; margin:0;'>Ángulo combinado: {ang_c:.2f}°</p>
-        </div>""", unsafe_allow_html=True)
-
-        # Gráfico corregido según diagrama manual
+        # --- LÓGICA DE GRÁFICO CORREGIDA ---
         fig, ax = plt.subplots(figsize=(5, 5))
         fig.patch.set_facecolor('#0E1117')
         ax.set_facecolor('#0E1117')
         
+        # Círculo del tubo
         t = np.linspace(0, 2*np.pi, 100)
         ax.plot(np.cos(t), np.sin(t), color='#00FF7F', lw=3)
         ax.axhline(0, color='#333', lw=1, ls='--')
         ax.axvline(0, color='#333', lw=1, ls='--')
 
-        # LÓGICA DE FLECHA (Basada en 161104.jpg)
-        # CI (Inferior) parte de arriba (90°); CS (Superior) parte de abajo (270°)
-        start_angle = 90 if "CI" in sent_v else 270
-        
-        # CHD gira a la izquierda (antihorario +); CHI gira a la derecha (horario -)
-        sentido_flecha = 1 if "CHD" in sent_h else -1
-        arc_end = start_angle + (60 * sentido_flecha)
+        # AJUSTE SEGÚN TU LIBRETA:
+        # CI (Inferior) -> Empieza ARRIBA (90°)
+        # CS (Superior) -> Empieza ABAJO (270°)
+        if "CI" in sent_v:
+            start_angle = 90
+            # CHD gira a la izquierda (+), CHI a la derecha (-)
+            sentido = 1 if "CHD" in sent_h else -1
+        else: # Es CS
+            start_angle = 270
+            # En CS, CHD gira a la izquierda (+), CHI a la derecha (-)
+            sentido = 1 if "CHD" in sent_h else -1
 
-        # Dibujar arco y punta de flecha
-        arc_t = np.deg2rad(np.linspace(start_angle, arc_end, 50))
+        # Dibujar arco de 60 grados para la flecha visual
+        extent = 60 * sentido
+        arc_t = np.deg2rad(np.linspace(start_angle, start_angle + extent, 50))
         ax.plot(np.cos(arc_t)*1.15, np.sin(arc_t)*1.15, color='#00FF7F', lw=4)
         
-        ax.arrow(np.cos(np.deg2rad(arc_end))*1.15, np.sin(np.deg2rad(arc_end))*1.15, 
-                 -0.02*sentido_flecha*np.sin(np.deg2rad(arc_end)), 0.02*sentido_flecha*np.cos(np.deg2rad(arc_end)),
+        # Punta de flecha
+        end_rad = np.deg2rad(start_angle + extent)
+        ax.arrow(np.cos(end_rad)*1.15, np.sin(end_rad)*1.15, 
+                 -0.02*sentido*np.sin(end_rad), 0.02*sentido*np.cos(end_rad),
                  shape='full', head_width=0.08, color='#00FF7F')
 
         ax.set_xlim(-1.6, 1.6); ax.set_ylim(-1.6, 1.6); ax.axis('off')
+        
+        st.markdown(f"<h2 style='color:#00FF7F; text-align:center;'>GIRO: {giro_mm:.2f} mm</h2>", unsafe_allow_html=True)
         st.pyplot(fig)
 
-        # Texto de instrucción
-        ref = "SUPERIOR" if "CI" in sent_v else "INFERIOR"
+        # Texto de instrucción dinámico
+        ref = "SUPERIOR (Eje de doblado)" if "CI" in sent_v else "INFERIOR"
         lado = "IZQUIERDA" if "CHD" in sent_h else "DERECHA"
         st.info(f"📍 MARCAR: Desde el eje {ref}, medir {giro_mm:.2f} mm hacia la {lado}.")
+            
